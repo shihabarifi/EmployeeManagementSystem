@@ -1,0 +1,81 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="EmployeeManagementSystem.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head runat="server">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><asp:ContentPlaceHolder ID="TitleContent" runat="server" /></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex-grow: 1;
+        }
+        .navbar {
+            background-color: #333; /* لون شريط التنقل */
+            padding: 1rem 2rem;
+            color: white;
+            margin-bottom: 20px; /* إضافة هامش أسفل شريط التنقل */
+        }
+        .navbar a {
+            color: white;
+            margin-left: 15px; /* تعديل لـ RTL */
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+        .navbar .logo-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #2c3e50; /* لون أغمق للفوتر */
+            color: #ecf0f1; /* لون نص فاتح للفوتر */
+            text-align: center;
+            padding: 15px 0;
+            margin-top: auto; /* يدفع الفوتر لأسفل الصفحة */
+        }
+    </style>
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server" />
+</head>
+<body>
+    <form id="form1" runat="server">
+        <asp:ScriptManager runat="server" />
+
+        <nav class="navbar">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="logo-text">نظام إدارة الموظفين</div>
+                <div>
+                    <asp:HyperLink ID="hlSearch" NavigateUrl="~/SearchEmployee.aspx" Text="بحث عن موظف" runat="server" />
+                    <asp:HyperLink ID="hlAddEmployee" NavigateUrl="~/AddEmployee.aspx" Text="إضافة موظف" runat="server" />
+                    <asp:HyperLink ID="hlImport" NavigateUrl="~/ImportExcel.aspx" Text="استيراد من Excel" runat="server" />
+                    <asp:LoginStatus ID="LoginStatus1" runat="server" LogoutText="تسجيل الخروج" LoginText="تسجيل الدخول" LogoutPageUrl="~/Login.aspx"/>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-content container mx-auto px-4">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server">
+                <!-- محتوى الصفحات سيظهر هنا -->
+            </asp:ContentPlaceHolder>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; <%--= DateTime.Now.Year --%> - نظام إدارة الموظفين</p>
+        </footer>
+    </form>
+    <asp:PlaceHolder runat="server">
+        <%: Scripts.Render("~/Scripts/bootstrap.js") %>
+    </asp:PlaceHolder>
+</body>
+</html>
