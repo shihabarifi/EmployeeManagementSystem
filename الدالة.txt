@@ -1,0 +1,134 @@
+/// <summary>
+        /// دالة استيراد الحسابات
+        /// </summary>
+        void ImportAccounts()
+        {
+            //Bulk Copy Start
+            if (FileUpload_accounts.HasFile)
+            {
+                try
+                {
+                if (FileUpload_accounts.FileContent.Length > 0)
+                {
+                   // my_class.getCon().Open();
+                    string Foldername;
+                    string Extension = System.IO.Path.GetExtension(FileUpload_accounts.PostedFile.FileName);
+                    string filename = Path.GetFileName(FileUpload_accounts.PostedFile.FileName.ToString());
+
+
+                        if (Extension == ".XLS" || Extension == ".XLSX" || Extension == ".xls" || Extension == ".xlsx")
+                        {
+
+                            Foldername = Server.MapPath("~/UploadFile/");
+
+                            FileUpload_accounts.PostedFile.SaveAs(Foldername + filename.ToString());
+                            SetExcelConnString(Extension, filename, Foldername);
+
+                            OleDbCommand cmd = new OleDbCommand("select * from [Sheet1$]", oconn);
+                            oconn.Open();
+                            // Create DbDataReader to Data Worksheet
+
+                            DataTable dt = new DataTable();
+                            DbDataReader dr = null;
+                            if (rdbByName.Checked)
+                            {
+                                OleDbDataAdapter sda = new OleDbDataAdapter(cmd);
+                                sda.Fill(dt);
+                                CheckAndAdjustData(dt);
+                            }
+                            else
+                            {
+                                dr = cmd.ExecuteReader();
+                            }
+
+                            // SQL Server Connection String  
+                            // string CS = my_class.getCon().ConnectionString; //ConfigurationManager.ConnectionStrings["DBCS"].ConnectionString;
+                            // Bulk Copy to SQL Server   
+
+                            using (TransactionScope scope = new TransactionScope())
+                            {
+                                SqlBulkCopy bulkInsert = new SqlBulkCopy(my_class.getCon());
+                                my_class.getCon().Open();
+                                bulkInsert.DestinationTableName = "dbo.tblAccounts";
+                                try
+                                {
+                                    string DeleteAccountsQuery = "delete from dbo.tblAccounts";//حذف الحسابات السابقة
+                                    SqlCommand cmd_delete = new SqlCommand(DeleteAccountsQuery, my_class.getCon());
+                                    cmd_delete.ExecuteNonQuery();
+
+                                    try
+                                    {
+                                        string RestAccountsIDQuery = "DBCC CHECKIDENT('tblAccounts',RESEED,0)";//لاعادة ترقيم ال ID من الثفر
+                                        SqlCommand cmd_restID = new SqlCommand(RestAccountsIDQuery, my_class.getCon());
+                                        cmd_restID.ExecuteNonQuery();
+                                    }
+                                    catch(Exception ex_rest)
+                                    {
+                                        ShowMessagePanel(result_panel_accounts, "حدثت مشكلة اثناء محاولة اعادة ضبط الترقيم التلقائي للحسابات"+"::"+ ex_rest.Message, true);
+                                    }                                    
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (ex.Message.Contains("The DELETE statement conflicted with the REFERENCE constraint"))
+                                    {
+                                        ShowMessagePanel(result_panel_accounts, "لا يمكن استعادة الدليل المحاسبي  الى قاعدة يوجد فيها دليل محاسبي مرتبط بعمليات", true);                                       
+
+                                        my_class.getCon().Close();
+                                        oconn.Close();
+
+                                        File.Delete(Foldername + filename.ToString());
+                                        return;
+                                    }
+                                }
+
+                                var StoresAccounts = from row in dt.AsEnumerable()
+                                                     let value = row.Field<double>("رقم الحساب").ToString()
+                                                     where value.StartsWith("9") && value.Length > 1
+                                                     select row;
+                                foreach (var row in StoresAccounts)
+                                {
+                                    my_class.Set_Store("( SELECT IsNull( MAX(StoreNumber),0)+1 FROM tblStores )", row["رقم الحساب"].ToString(), "", "", "", "من عملية الاستيراد", Session["id"].ToString(), Session["branch_id"].ToString());
+                                }
+
+                                if (rdbByName.Checked)
+                                    bulkInsert.WriteToServer(dt);
+                                else
+                                    bulkInsert.WriteToServer(dr);
+
+                                //استدعاء برسيجر لاضافة الاصناف والوحدات من الجدول المؤقت الى دليل الاصناف والوحدات
+                                //SqlCommand cmd1 = new SqlCommand("fillclasses", my_class.getCon());
+                                //cmd1.CommandType = CommandType.StoredProcedure;
+                                //cmd1.ExecuteNonQuery();
+
+                                my_class.getCon().Close();
+                                oconn.Close();
+                                my_class.Set_History(doc_no, "استيراد", " الترقية الى نظام مال", "تم استيراد الحسابات من ملف الاكسل "+ " / "+  filename.ToString(), null, HttpContext.Current.Session["id"].ToString(), HttpContext.Current.Session["branch_id"].ToString());
+
+                                System.IO.File.Delete(Foldername + filename.ToString());
+
+                                ShowMessagePanel(result_panel_accounts, "تم استيراد الحسابات بنجاح");
+                                scope.Complete();
+                            }
+                        }
+                        else
+                        {
+                            ShowMessagePanel(result_panel_accounts, LanguagesResources.LanguageResource.ChooseAnExcelFile, true);                     
+                        }
+                    }
+            
+            else
+            {
+                        ShowMessagePanel(result_panel_accounts, LanguagesResources.LanguageResource.UploadAnExcelFileFirst, true);                    
+            }
+        }        
+            catch (Exception ex)
+                {
+                    ShowMessagePanel(result_panel_accounts, "Your EX: " + ex.ToString(), true);                   
+                }
+                finally
+                {
+                    oconn.Close();
+                }
+            }
+            //Bulk Copy End
+        }
